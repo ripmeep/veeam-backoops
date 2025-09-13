@@ -32,6 +32,7 @@ or
 `$ brew install mingw-w64`
 
 Then, you can compile with the following:
+
 `x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32`
 
 If successful, `veeam-backoops.exe` should now be in the current working directory.
