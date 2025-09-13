@@ -6,13 +6,14 @@
 #include <windows.h>
 #include <wincrypt.h>
 
-#define PG_ROOT_PATH      "C:\\Program Files\\PostgreSQL\\15"
-#define PG_USERNAME       "postgres"
-#define PG_HOST           "localhost"
-#define PG_DATABASE       "VeeamBackup"
+/* Change these if needed */
+#define PG_ROOT_PATH      "C:\\Program Files\\PostgreSQL\\15" /* Path to PostgreSQL install */
+#define PG_USERNAME       "postgres"                          /* Username to connect to the Veeam database as */
+#define PG_HOST           "localhost"                         /* Host of the PostgreSQL database (rarely needs changing) */
+#define PG_DATABASE       "VeeamBackup"                       /* Database name of the Veeam Credential store */
 
 #define VEEAM_SALT_ROOT   HKEY_LOCAL_MACHINE
-#define VEEAM_SALT_SUBKEY "SOFTWARE\\Veeam\\Veeam Backup and Replication\\Data"
+#define VEEAM_SALT_SUBKEY "SOFTWARE\\Veeam\\Veeam Backup and Replication\\Data" /* Registry key path of the EncryptionSalt key */
 #define VEEAM_SALT_KEY    "EncryptionSalt"
 
 #define SHOW_DESCRIPTION 0 /* Output the PostgreSQL "description" column to stdout */ 
@@ -29,6 +30,7 @@ typedef enum {
   PG_RES_BAD
 } PG_EXEC_STATUS;
 
+/* libpq template functions */
 typedef int (__cdecl *PQlibVersion_t)(void);
 
 typedef struct PGconn PGconn;

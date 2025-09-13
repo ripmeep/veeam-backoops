@@ -32,6 +32,7 @@ int main(void) {
 
   printf("- Connected to database successfully [db=%s] [user=%s]\n", PG_DATABASE, PG_USERNAME);
 
+  /* Uh oh - upon failing the pg_hba restoration, we will just dump all info we have of the original copy. */
   if (!vb_data_pg_hba_restore(&vb_data)) {
     fprintf(stderr,
             "- vb_data_pg_hba_restore(...) failed to restore the original PostgreSQL access configuration [0x%08x]\n" \
@@ -50,6 +51,7 @@ int main(void) {
     fflush(stderr);
     getchar();
 
+    /* Let's still try >:) */
     // goto cleanup;
   }
 
@@ -134,7 +136,7 @@ int main(void) {
     putchar('\n');
 
     for (struct vb_credential *tmp = vb_data.vbc; tmp; tmp = tmp->next) {
-      if (!tmp->plaintext)
+      if (!tmp->plaintext) /* Only want to show credentials which we have decrypted successfully */
         continue;
       for (int i = 0; i < 3; i++) 
         memset(peek[i], 0, sizeof(peek[i]));
