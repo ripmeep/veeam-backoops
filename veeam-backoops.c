@@ -1,3 +1,10 @@
+/* veeam-backoops.c */
+
+/*
+ * Author: ripmeep
+ * Date  : 13/09/2025
+ */
+
 #include <windows.h>
 #include "veeam-backoops.h"
 
