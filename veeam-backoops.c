@@ -103,20 +103,23 @@ int main(void) {
 
   if (d) {
     printf("\n\t");
-    if (SHOW_DESCRIPTION)
+    #if SHOW_DESCRIPTION
       printf("%-48s | ", "DESCRIPTION");
+    #endif
     printf("%-32s | %s\n\t", "USERNAME", "PLAINTEXT PASSWORD");
 
-    if (SHOW_DESCRIPTION)
+    #if SHOW_DESCRIPTION
       printf("-------------------------------------------------+-");
+    #endif
     printf("---------------------------------+---------------------------------\n");
 
     for (struct vb_credential *tmp = vb_data.vbc; tmp; tmp = tmp->next) {
       if (!tmp->plaintext) /* Only want to show credentials which we have decrypted successfully */
         continue;
       printf("\t");
-      if (SHOW_DESCRIPTION) 
+      #if SHOW_DESCRIPTION
         printf("%-48s | ", tmp->description);
+      #endif
       printf("%-32s | %s\n", tmp->user_name, tmp->plaintext);
     }
 
