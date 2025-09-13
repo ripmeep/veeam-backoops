@@ -294,7 +294,6 @@ int vb_libpq_map(libpq_t *pq, char *out_path, size_t out_len) {
                                                       such as libcrypto(...).dll, libzstd.dll etc.
                                                       so we must add these to the DLL directory before
                                                       attempting to load libpq.dll */
-  printf("%s\n", out_path);
   if (!SetDllDirectory(out_path))
     return -1;
 
