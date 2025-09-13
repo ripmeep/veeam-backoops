@@ -112,8 +112,6 @@ int main(void) {
     goto cleanup;
   }
 
-  memset(peek[0], 0, sizeof(peek[0]));
-  memcpy(peek[0], vb_data.encryption_salt, 20);
   printf("- Successfully retrieved Veeam encryption salt [%s]\n", vb_data.encryption_salt);
 
   int d = 0;
