@@ -43,3 +43,4 @@ DISCLAIMER: I ain't responsible for yo mischief.
 Copy this to the server and run it! Either double click, or through cmd:
 
 ![veeam-backoops.exe running](https://github.com/ripmeep/veeam-backoops/blob/main/images/veeam-backoops.png?raw=true)
+![veeam-backoops.exe over netexec](https://github.com/ripmeep/veeam-backoops/blob/main/images/nxc.png?raw=true)
