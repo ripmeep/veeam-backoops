@@ -3,7 +3,21 @@ A Veeam credential password decrypter/recovery tool for PostgreSQL databases
 
 This tool attempts to load the libpq (PostgreSQL) library from the default installed location (packaged with Veeam), overwrites the pg_hba.conf file to allow trusted access, then extracts and decrypts the credentials from the Veeam credential store.
 
-Paths can be configured from the `veeam-backoops.h` file at the top to set the PostgreSQL root path location, along with the database name and registry key locations for encryption data.
+Restoration of the original pg_hba.conf will be attempted, and some fallbacks are in place if this fails.
+
+Paths can be configured from the `veeam-backoops.h` file at the top to set the PostgreSQL root path location, along with the database name and registry key locations for encryption data:
+
+```c
+/* Change these if needed */
+#define PG_ROOT_PATH      "C:\\Program Files\\PostgreSQL\\15" /* Path to PostgreSQL install */
+#define PG_USERNAME       "postgres"                          /* Username to connect to the Veeam database as */
+#define PG_HOST           "localhost"                         /* Host of the PostgreSQL database (rarely needs changing) */
+#define PG_DATABASE       "VeeamBackup"                       /* Database name of the Veeam Credential store */
+
+#define VEEAM_SALT_ROOT   HKEY_LOCAL_MACHINE
+#define VEEAM_SALT_SUBKEY "SOFTWARE\\Veeam\\Veeam Backup and Replication\\Data" /* Registry key path of the EncryptionSalt key */
+#define VEEAM_SALT_KEY    "EncryptionSalt"
+```
 
 # Build
 
