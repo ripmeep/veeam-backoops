@@ -23,17 +23,26 @@ Paths can be configured from the `veeam-backoops.h` file at the top to set the P
 
 This tool relies on `mingw-w64` to build, so do so via your respected package manager.
 ##### Debian
-`$ sudo apt install mingw-w64`
+```bash
+$ sudo apt install mingw-w64
+```
 ##### Arch
-`$ sudo pacman -S mingw-w64`
+```bash
+$ sudo pacman -S mingw-w64
+```
 or
-`$ yay -S mingw-w64`
+```bash
+$ yay -S mingw-w64
+```
 ##### MacOS (brew)
-`$ brew install mingw-w64`
+```bash
+$ brew install mingw-w64
+```
 
 Then, you can compile with the following:
-
-`x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32`
+```bash
+$ x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32
+```
 
 If successful, `veeam-backoops.exe` should now be in the current working directory.
 
