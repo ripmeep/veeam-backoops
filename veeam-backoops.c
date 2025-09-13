@@ -9,6 +9,10 @@
 #include "veeam-backoops.h"
 
 int main(void) {
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+  printf("\n\t\t--+== veeam-backoops by ripmeep ==+--\n\n");
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+
   char libpq_path[MAX_PATH];
   int status;
   libpq_t pq;
@@ -100,25 +104,24 @@ int main(void) {
   if (d) {
     printf("\n\t");
     if (SHOW_DESCRIPTION)
-      printf("%-50s | ", "DESCRIPTION");
-    printf("%-44s | %s\n\t", "USERNAME", "PLAINTEXT PASSWORD");
+      printf("%-48s | ", "DESCRIPTION");
+    printf("%-32s | %s\n\t", "USERNAME", "PLAINTEXT PASSWORD");
 
     if (SHOW_DESCRIPTION)
-      printf("---------------------------------------------------+");
-    printf("---------------------------------------------+--------------------------------------------------\n");
+      printf("-------------------------------------------------+-");
+    printf("---------------------------------+---------------------------------\n");
 
     for (struct vb_credential *tmp = vb_data.vbc; tmp; tmp = tmp->next) {
       if (!tmp->plaintext) /* Only want to show credentials which we have decrypted successfully */
         continue;
       printf("\t");
       if (SHOW_DESCRIPTION) 
-        printf("%-50s | ", tmp->description);
-      printf("%-44s | %s\n", tmp->user_name, tmp->plaintext);
+        printf("%-48s | ", tmp->description);
+      printf("%-32s | %s\n", tmp->user_name, tmp->plaintext);
     }
 
     printf("\n");
-  } else
-    fprintf(stderr, "- No passwords were successfully decrypted\n");
+  }
 
 cleanup:
 
