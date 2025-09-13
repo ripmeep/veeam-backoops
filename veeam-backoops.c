@@ -56,16 +56,10 @@ int main(void) {
             "  -  Check if \"%s\" exists, and replace the original config with it" \
             "       OR\n" \
             "  -  Below is what we have of the original configuration\n" \
-            "     If possible, please replace the contents of \"%s\" with the below (press ENTER to view)",
+            "     If possible, please replace the contents of \"%s\" with the below:\n",
             GetLastError(), vb_data.pg_hba_path_copy, vb_data.pg_hba_path);
-    fflush(stderr);
-    getchar();
 
     fprintf(stderr, "\n%s\n\n", vb_data.pg_hba_orig);
-    fprintf(stderr, "- Press ENTER to continue");
-
-    fflush(stderr);
-    getchar();
 
     /* Let's still try >:) */
     // goto cleanup;
@@ -132,9 +126,6 @@ cleanup:
   vb_data_free(&vb_data);
 
   printf("- Cleaned up process memory\n");
-  printf("- Press ENTER to exit");
-
-  getchar();
 
   return 0;
 }
