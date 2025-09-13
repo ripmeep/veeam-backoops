@@ -1,3 +1,10 @@
+/* veeam-backoops.h */
+
+/*
+ * Author: ripmeep
+ * Date  : 13/09/2025
+ */
+
 #ifndef _VEEAM_BACKOOPS_H
 
 #include <stdio.h>
