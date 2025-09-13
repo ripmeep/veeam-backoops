@@ -301,8 +301,6 @@ int vb_libpq_map(libpq_t *pq, char *out_path, size_t out_len) {
   /* Once the DLL directory has been set for deps, we can attempt to load libpq.dll */
   vb_path(out_path, out_path, "libpq.dll", out_len);
 
-  printf("%s\n", out_path);
-
   pq->conn = NULL;
   pq->res = NULL;
 
