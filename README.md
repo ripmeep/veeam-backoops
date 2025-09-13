@@ -28,12 +28,16 @@ This tool relies on `mingw-w64` to build, so do so via your respected package ma
 `$ sudo pacman -S mingw-w64`
 or
 `$ yay -S mingw-w64`
-
+##### MacOS (brew)
+`$ brew install mingw-w64`
 
 Then, you can compile with the following:
 `x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32`
 
 If successful, `veeam-backoops.exe` should now be in the current working directory.
 
+A pre-compiled release can be found in the releases section for x86_64 Windows :)
+
 Copy this to the server and run it! Either double click, or through cmd:
 
+![veeam-backoops.exe running](https://github.com/ripmeep/veeam-backoops/blob/main/images/credentials.png?raw=true)
