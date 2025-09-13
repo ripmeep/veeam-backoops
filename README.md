@@ -1,6 +1,8 @@
 # veeam-backoops
 A Veeam credential password decrypter/recovery tool for PostgreSQL databases
+
 This tool attempts to load the libpq (PostgreSQL) library from the default installed location (packaged with Veeam), overwrites the pg_hba.conf file to allow trusted access, then extracts and decrypts the credentials from the Veeam credential store.
+
 Paths can be configured from the `veeam-backoops.h` file at the top to set the PostgreSQL root path location, along with the database name and registry key locations for encryption data.
 
 # Build
