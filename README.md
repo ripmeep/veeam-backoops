@@ -15,6 +15,7 @@ This tool relies on `mingw-w64` to build, so do so via your respected package ma
 or
 `$ yay -S mingw-w64`
 
+
 Then, you can compile with the following:
 `x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32`
 
