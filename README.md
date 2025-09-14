@@ -41,6 +41,12 @@ $ brew install mingw-w64
 
 Then, you can compile with the following:
 ```bash
+$ make
+```
+
+Or, compile manually yourself
+
+```bash
 $ x86_64-w64-mingw32-gcc veeam-backoops.c -o veeam-backoops -lcrypt32
 ```
 
