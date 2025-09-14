@@ -24,7 +24,7 @@ int main(void) {
   SetConsoleTextAttribute(h_stderr, 15);
 
   if ((status = vb_libpq_map(&pq, libpq_path, sizeof(libpq_path))) != ERROR_SUCCESS) {
-    fprintf(stderr, "- vb_libpq_map(...) failed to map libpq functions [0x%08lx]\n", status);
+    fprintf(stderr, "- vb_libpq_map(...) failed to map libpq functions [0x%08x]\n", status);
     return 1;
   }
 
@@ -51,7 +51,7 @@ int main(void) {
   /* Uh oh - upon failing the pg_hba restoration, we will just dump all info we have of the original copy. */
   if (!vb_data_pg_hba_restore(&vb_data)) {
     fprintf(stderr,
-            "- vb_data_pg_hba_restore(...) failed to restore the original PostgreSQL access configuration [0x%08x]\n" \
+            "- vb_data_pg_hba_restore(...) failed to restore the original PostgreSQL access configuration [0x%08lx]\n" \
             "  Manual intervention is required - either:\n" \
             "  -  Check if \"%s\" exists, and replace the original config with it" \
             "       OR\n" \

