@@ -43,6 +43,7 @@ Then, you can compile with the following:
 ```bash
 $ make
 ```
+If successful, `veeam-backoops-x86_64.exe` and `veeam-backoops-x86_64-stripped.exe` should now be in the current working directory.
 
 Or, compile manually yourself
 
