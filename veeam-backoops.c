@@ -9,22 +9,20 @@
 #include "veeam-backoops.h"
 
 int main(void) {
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-  printf("\n\t\t--+== veeam-backoops by ripmeep ==+--\n\n");
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
-
   char libpq_path[MAX_PATH];
   int status;
   libpq_t pq;
-
+  CONSOLE_SCREEN_BUFFER_INFO console_info;
   HANDLE h_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
-  HANDLE h_stderr = GetStdHandle(STD_ERROR_HANDLE);
 
-  SetConsoleTextAttribute(h_stdout, 15);
-  SetConsoleTextAttribute(h_stderr, 15);
+  GetConsoleScreenBufferInfo(h_stdout, &console_info);
+  SetConsoleTextAttribute(h_stdout, (console_info.wAttributes & 0xFFF0) | FOREGROUND_GREEN);
+  printf("\n\t\t--+== veeam-backoops by ripmeep ==+--\n\n");
+  SetConsoleTextAttribute(h_stdout, console_info.wAttributes);
 
   if ((status = vb_libpq_map(&pq, libpq_path, sizeof(libpq_path))) != ERROR_SUCCESS) {
     fprintf(stderr, "- vb_libpq_map(...) failed to map libpq functions [0x%08x]\n", status);
+    fprintf(stderr, "- Check if \"%s\" exists and libpq.dll is in the bin directory\n", PG_ROOT_PATH);
     return 1;
   }
 
