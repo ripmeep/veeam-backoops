@@ -79,3 +79,5 @@ $ make
 beacon> inline-execute /path/to/vboops-bof.o
 ...
 ```
+
+![vboops-bof via AdaptixC2](https://github.com/ripmeep/veeam-backoops/blob/main/images/bof.png?raw=True)
