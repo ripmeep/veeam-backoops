@@ -157,7 +157,7 @@ char* bof_strdup(const char *str) {
 	if (!str)
 		return NULL;
 
-	SIZE_T len = bof_strlen(str);
+	SIZE_T len = bof_strlen(str) + 1;
 	char *dup = ALLOC(len);
 	
   if (!dup)
