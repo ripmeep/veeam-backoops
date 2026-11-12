@@ -271,7 +271,7 @@ static DWORD vb_base64_decode(const char *enc, unsigned char **dec) {
   if (!CRYPT32$CryptStringToBinaryA(enc, 0, CRYPT_STRING_BASE64,
                                     *dec, &req, NULL, NULL)) {
     FREE(*dec);
-		*dec = NULL
+		*dec = NULL;
     return 0;
   }
 
