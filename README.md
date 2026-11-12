@@ -64,3 +64,18 @@ Copy this to the server and run it! Either double click, or through cmd:
 Uploading and executing over netexec:
 
 ![veeam-backoops.exe over netexec](https://github.com/ripmeep/veeam-backoops/blob/main/images/nxc.png?raw=true)
+
+
+# BOF
+The `BOF` directory contains the source (`vboops-bof.c`) to build and run this over a Cobalt Strike/AdaptixC2/BOF-supporting C2.
+
+### Build
+```bash
+$ cd BOF
+$ make
+```
+
+```
+beacon> inline-execute /path/to/vboops-bof.o
+...
+```
