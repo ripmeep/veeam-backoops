@@ -385,7 +385,7 @@ static DWORD vb_data_pg_hba_restore(vb_data_t *vb_data) {
 }
 
 static LSTATUS vb_get_encryption_salt(unsigned char **md, DWORD *olen,
-                                     HKEY root, const char *subkey, const char *key) {
+                                      HKEY root, const char *subkey, const char *key) {
   if (!subkey || !key) {
     *olen = 0;
     return ERROR_INVALID_DATA;
