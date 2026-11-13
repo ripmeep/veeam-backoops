@@ -25,7 +25,6 @@
 #define VEEAM_SALT_KEY              "EncryptionSalt" /* Registry key name of the encryption salt used to encrypt credentials in the db */
 #define VEEAM_ENCRYPTION_HEADER_LEN 37 /* 37 is the length of the header in Veeam's encrypted strings which we later discard */
 
-//#define MAX_PATH                    1024 /* Feel free to change this based on system MAX_PATH requirements */
 #define _V                          "VEEAM-BACKOOPS-BOF | "
 #define _D                          "VEEAM-BACKOOPS-BOF | DEBUG: " /* Just for debugging stuff */
 
